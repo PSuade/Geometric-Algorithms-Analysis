@@ -1,0 +1,74 @@
+import random
+import timeit
+import math
+import matplotlib.pyplot as plt
+
+##TODO: Fix legend on graph, add more for empirical analysis
+
+def graham_scan(points): # Function calculates the polar angle of a point with respect to a reference point
+
+    def polar_angle(point, reference):
+        return math.atan2(point[1] - reference[1], point[0] - reference[0]) #point[1] - reference[1] = vertical distance , #point[0] - reference[0] = Horizontal
+
+    if len(points) < 3: # Convex hull not possible with less than 3 points
+        return []
+
+    reference_point = min(points, key=lambda point: (point[1], -point[0])) # Finds the reference point (compares all of the points and finds lowest y coordinate point)
+
+    sorted_points = sorted(points, key=lambda point: polar_angle(point, reference_point))  # Sorts the points by polar angle with respect to the reference point
+
+    convex_hull = [sorted_points[0], sorted_points[1]]    # Initializes the convex hull with the first two points
+
+    for i in range(2, len(sorted_points)): #Iterates through sorted points
+        while (
+            len(convex_hull) > 1
+            and (
+                (convex_hull[-1][0] - convex_hull[-2][0]) * (sorted_points[i][1] - convex_hull[-2][1])  #Checks if cross product of vectors formed by last two points of convex hull
+                - (convex_hull[-1][1] - convex_hull[-2][1]) * (sorted_points[i][0] - convex_hull[-2][0]) #and current point is <=0
+            ) <= 0                                                                  
+        ):
+            # Remove the last point from the convex hull if it makes a right turn
+            convex_hull.pop()
+
+        # Add the current point to the convex hull if it makes a left turn
+        convex_hull.append(sorted_points[i])
+
+    return convex_hull
+
+# Generates random integer points for empirical analysis
+def generate_random_integer_points(n, min_val, max_val):
+    return [(random.randint(min_val, max_val), random.randint(min_val, max_val)) for _ in range(n)]
+
+# Function to measure execution time for Graham's scan
+def measure_execution_time(n):
+    points = generate_random_integer_points(n, -100, 100)
+    reference_point = min(points, key=lambda point: (point[1], -point[0]))  # Define the reference point
+
+    convex_hull = graham_scan(points)
+
+    # Visualization
+    x, y = zip(*points)  # Split points into x and y coordinates
+    hx, hy = zip(*convex_hull)  # Split convex hull points into x and y coordinates
+
+    # Plots the points in blue and the convex hull in red
+    plt.scatter(x, y, color='blue', label='Points')
+    plt.plot(hx + (hx[0],), hy + (hy[0],), color='red', label='Convex Hull')
+
+    # Plots the reference point in green
+    plt.scatter(reference_point[0], reference_point[1], color='green', label='Reference Point', marker='o', s=50)
+
+    # Intializes a legend in the plot
+    plt.legend()
+
+    plt.xlabel('X-coordinate') 
+    plt.ylabel('Y-coordinate')
+    plt.title(f'Convex Hull for Input size {n}')
+    plt.show()
+
+    return timeit.timeit(lambda: graham_scan(points), number=10)
+
+input_sizes = [10, 100, 1000, 2000, 10000]
+
+for n in input_sizes:
+    execution_time = measure_execution_time(n)
+    print(f"Input size {n}: Average Execution Time: {execution_time} seconds")
